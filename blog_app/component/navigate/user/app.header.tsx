@@ -9,6 +9,7 @@ import React, { useRef, useEffect } from "react";
 import Cookies from "js-cookie";
 import useUserStore from "@/app/store/useUserStore";
 import { useRouter } from "next/navigation";
+import ThemeToggle from "@/component/ThemeToggle";
 
 interface SystemStore {
   lang: string;
@@ -36,6 +37,10 @@ const AppHeader = () => {
     setIsLanguageOpen(false);
     i18n.changeLanguage(lang); // Update i18next language
   };
+
+  const user = useUserStore((state) => state.user);
+  const routerName = user?.full_name?.replace(/\s/g, "_");
+  console.log("routerName", routerName);
 
   const router = useRouter();
 
@@ -67,7 +72,9 @@ const AppHeader = () => {
 
   const onLogout = () => {
     router.push("/sign-in");
-    localStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("user");
+    }
     Cookies.remove("access_token");
     Cookies.remove("refresh_token");
     useUserStore.getState().setUser(null);
@@ -85,7 +92,7 @@ const AppHeader = () => {
   ];
   return (
     <div>
-      <header className="bg-white shadow-md h-15 w-full">
+      <header className="bg-white dark:bg-gray-800 shadow-md h-15 w-full">
         <nav className="navbar mx-8 my-3">
           <div className="container justify-between flex">
             <div className="menu-icon lg:hidden xl:hidden">
@@ -129,7 +136,7 @@ const AppHeader = () => {
                 <input
                   type="text"
                   id="default-input"
-                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:placeholder-gray-400"
                   placeholder="Tìm kiếm..."
                 />
               </div>
@@ -161,13 +168,13 @@ const AppHeader = () => {
                     </button>
                   </div>
                   {isLanguageOpen && (
-                    <div className="absolute bg-white shadow-lg rounded-lg p-2 mt-2">
+                    <div className="absolute bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 mt-2">
                       {Language.map((lang) => (
                         <button
                           key={lang.code}
                           name="language"
                           onClick={() => handleLanguageChange(lang.code)}
-                          className="flex items-center gap-2 px-4 py-2 hover:bg-gray-200 rounded-md"
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"
                         >
                           <Image
                             src={lang.flag}
@@ -182,11 +189,17 @@ const AppHeader = () => {
                   )}
                 </li>
                 <li className="md:px-4 px-2">
+                  <ThemeToggle />
+                </li>
+                <li className="md:px-4 px-2">
                   <Image
                     src="bell.svg"
                     alt="Description of the image"
                     width={21}
                     height={21}
+                    className={
+                      "w-5 h-5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors text-amber-200"
+                    }
                   />
                 </li>
                 <li className="md:px-4 px-2">
@@ -212,16 +225,16 @@ const AppHeader = () => {
                       </svg>
                     </button>
                     {isProfileOpen && (
-                      <div className="absolute bg-white shadow-lg rounded-lg p-2 mt-2 right-0">
+                      <div className="absolute bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 mt-2 right-0 border border-gray-200">
                         <Link
-                          href="/profile"
-                          className="block px-4 py-2 hover:bg-gray-200 rounded-md"
+                          href={`/user/${routerName}`}
+                          className="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"
                         >
                           {t("Trang cá nhân")}
                         </Link>
                         <button
                           onClick={onLogout}
-                          className="block w-full text-left px-4 py-2 hover:bg-gray-200 rounded-md"
+                          className="block w-full text-left px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md"
                         >
                           {t("Đăng xuất")}
                         </button>

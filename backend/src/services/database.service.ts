@@ -9,6 +9,7 @@ import { VIDEO_SCHEMA } from "~/models/schemas/Video.schema";
 import { REFRESH_TOKEN_SCHEMA } from "~/models/schemas/Refresh_Token.schema";
 import { USER_SCHEMA } from "~/models/schemas/User.schema";
 import { FAVORITE_SCHEMA } from "~/models/schemas/Favorites.schema";
+import { LIKE_SCHEMA } from "~/models/schemas/Likes.schema";
 import { REPORT_SCHEMA } from "~/models/schemas/Reports.schema";
 
 class DatabaseService {
@@ -65,6 +66,9 @@ class DatabaseService {
   }
   get favorites(): Collection<FAVORITE_SCHEMA> {
     return this.db.collection(env_config.DB_COLLECTIONS.FAVORITES as string);
+  }
+  get likes(): Collection<LIKE_SCHEMA> {
+    return this.db.collection(env_config.DB_COLLECTIONS.LIKES as string);
   }
   get reports(): Collection<REPORT_SCHEMA> {
     return this.db.collection(env_config.DB_COLLECTIONS.REPORTS as string);

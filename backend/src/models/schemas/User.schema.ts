@@ -11,7 +11,8 @@ interface UserType {
   role?: ROLE_TYPE;
   verify?: USER_VERIFY_STATUS;
   avatar?: ImageTypes;
-  // Optional fields
+  bio?: string;
+  slug?: string;
   address?: string;
   forgot_password_token?: string;
   email_verify_token?: string;
@@ -29,6 +30,8 @@ export class USER_SCHEMA {
   role: ROLE_TYPE;
   verify: USER_VERIFY_STATUS;
   avatar: ImageTypes;
+  bio: string;
+  slug?: string;
   address: string;
   forgot_password_token: string;
   email_verify_token: string;
@@ -51,6 +54,8 @@ export class USER_SCHEMA {
       created_at: "",
       updated_at: "",
     };
+    this.bio = user.bio || "";
+    this.slug = user.full_name.toLowerCase().replace(/\s+/g, "-");
     this.address = user.address || "";
     this.forgot_password_token = user.forgot_password_token || "";
     this.email_verify_token = user.email_verify_token || "";

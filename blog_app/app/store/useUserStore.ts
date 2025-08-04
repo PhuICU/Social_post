@@ -1,3 +1,4 @@
+"use client";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -8,6 +9,7 @@ export interface User {
   email: string;
   phone?: string;
   avatar: { url: string };
+  bio: string;
 }
 
 interface StoreState {
@@ -23,7 +25,16 @@ const useStore = (set: any, get: any): StoreState => ({
 const useUserStore = create<StoreState>()(
   persist(useStore, {
     name: "user-storage",
-    storage: createJSONStorage(() => localStorage),
+    storage: createJSONStorage(() => {
+      if (typeof window !== "undefined") {
+        return localStorage;
+      }
+      return {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      };
+    }),
   })
 );
 export default useUserStore;

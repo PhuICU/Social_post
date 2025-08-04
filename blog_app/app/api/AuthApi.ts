@@ -3,11 +3,12 @@ import instance from "./apiContanst";
 type User = {
   id?: number;
   email: string;
-  password: string;
+
   full_name?: string;
   phone?: string;
   address?: string;
-  avatar?: string;
+  avatar?: { url: string } | null;
+  bio?: string;
   createdAt?: string;
   updatedAt?: string;
   role?: string;
@@ -74,6 +75,55 @@ export const getUserById = async (user_id: string) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching user by ID:", error);
+    throw error;
+  }
+};
+
+export const updateProfile = async (user: User) => {
+  try {
+    const response = await instance.put(`/user/profile`, user);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    throw error;
+  }
+};
+export const changePassword = async (
+  user_id: string,
+  oldPassword: string,
+  newPassword: string
+) => {
+  try {
+    const response = await instance.put(`/user/change-password`, {
+      user_id,
+      oldPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error changing password:", error);
+    throw error;
+  }
+};
+export const forgotPassword = async (email: string) => {
+  try {
+    const response = await instance.post(`/user/forgot-password`, { email });
+    return response.data;
+  } catch (error) {
+    console.error("Error in forgot password:", error);
+    throw error;
+  }
+};
+
+export const resetPassword = async (data: {
+  password: string,
+    confirmPassword: string,
+}) => {
+  try {
+    const response = await instance.post(`/user/reset-password`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error resetting password:", error);
     throw error;
   }
 };

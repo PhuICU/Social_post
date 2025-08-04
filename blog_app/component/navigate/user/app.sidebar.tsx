@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, lazy } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
@@ -7,6 +7,7 @@ import useUserStore, { User } from "@/app/store/useUserStore";
 import { useShallow } from "zustand/shallow";
 
 import CreatePostModal from "@/component/modal/create-post.modal";
+import ThemeToggle from "@/component/ThemeToggle";
 
 interface UserStore {
   user: User | null;
@@ -30,22 +31,28 @@ const AppSidebar = () => {
   }, []);
 
   const router = useRouter();
-  const { user } = useUserStore<UserStore>(
-    useShallow((state) => ({
-      user: state.user,
-      setUser: state.setUser,
-    }))
-  );
+  // const { user } = useUserStore<UserStore>(
+  //   useShallow((state) => ({
+  //     user: state.user,
+  //     setUser: state.setUser,
+  //   }))
+  // );
   const onLogout = () => {
     router.push("/sign-in");
-    localStorage.removeItem("user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("user");
+    }
     Cookies.remove("access_token");
     Cookies.remove("refresh_token");
     useUserStore.getState().setUser(null);
   };
 
+  const user = useUserStore((state) => state.user);
+
+  const userRouter = user?.full_name.replace(/\s+/g, "-").toLowerCase();
+
   return (
-    <div className="sidebar ">
+    <div className="sidebar">
       <ul className="py-2.5 mx-2.5">
         <li className="my-4 flex items-center ">
           <Link href="/" className="flex items-center">
@@ -67,21 +74,26 @@ const AppSidebar = () => {
           </Link>
         </li>
         <li className="my-4 flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-            className="size-6"
+          <Link
+            href={`/user/${userRouter}/saved`}
+            className="flex items-center"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
-            />
-          </svg>
-          <span className="mx-3.5 my-3 font-bold">Đã lưu</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="size-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
+              />
+            </svg>
+            <span className="mx-3.5 my-3 font-bold">Đã lưu</span>
+          </Link>
         </li>
         <li className="my-4 flex items-center">
           <CreatePostModal />
@@ -106,6 +118,7 @@ const AppSidebar = () => {
             <span className="mx-3.5 my-3 font-bold">Users</span>
           </Link>
         </li>
+
         <li className="my-4 flex items-center relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!isDropdownOpen)}
@@ -134,9 +147,12 @@ const AppSidebar = () => {
             <span className="mx-3.5 my-3 font-bold">Cài đặt</span>
           </button>
           {isDropdownOpen && (
-            <ul className="absolute left-0 mt-2 w-48 bg-gray-800 text-white shadow-lg rounded-md">
+            <ul className="absolute left-0 mt-2 w-48 bg-gray-800 dark:bg-gray-900 text-white shadow-lg rounded-md">
               <li>
-                <a className="block px-4 py-2 hover:bg-gray-700" href="">
+                <a
+                  className="block px-4 py-2 hover:bg-gray-700 dark:hover:bg-gray-800"
+                  href=""
+                >
                   Cài đặt
                 </a>
               </li>
@@ -146,7 +162,7 @@ const AppSidebar = () => {
               <li>
                 <button
                   onClick={onLogout}
-                  className="block px-4 py-2 w-full text-left hover:bg-gray-700"
+                  className="block px-4 py-2 w-full text-left hover:bg-gray-700 dark:hover:bg-gray-800"
                 >
                   <i className="fa fa-sign-out" aria-hidden="true"></i> Đăng
                   xuất

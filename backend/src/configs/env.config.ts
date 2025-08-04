@@ -23,6 +23,7 @@ const env_config = {
     VIDEOS: process.env.DB_COLLECTION_VIDEO,
     MESSAGES: process.env.DB_COLLECTION_MESSAGE,
     FAVORITES: process.env.DB_COLLECTION_FAVORITES,
+    LIKES: process.env.DB_COLLECTION_LIKES,
     REPORTS: process.env.DB_COLLECTION_REPORTS,
   },
   EMAIL_HOST: process.env.EMAIL_HOST,

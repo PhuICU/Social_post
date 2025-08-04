@@ -1,17 +1,16 @@
-"use client"; // ✅ Ensures this runs only on the client
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import "./globals.css";
+import ClientProviders from "./ClientProviders";
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const queryClient = new QueryClient();
   return (
     <html lang="en" className="h-full">
       <body>
-        <QueryClientProvider client={queryClient}>
+        <ClientProviders>
           <div>{children}</div>
-        </QueryClientProvider>
+        </ClientProviders>
       </body>
     </html>
   );

@@ -41,11 +41,18 @@ instance.interceptors.response.use(
 
   async (error) => {
     const originalRequest = error.config;
-    console.log("error", error.response);
-    if (error.response.status === 401 && !originalRequest._retry) {
+    console.error("Response error:", error.response);
+
+    if (error?.response?.data?.errors?.authorization) {
+      Cookies.remove("access_token");
+      Cookies.remove("refresh_token");
+      window.location.href = "/sign-in";
+    }
+    if (error?.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refresh_token = Cookies.get("refresh_token");
+      console.log("Refresh token:", refresh_token);
       if (!refresh_token) {
         return Promise.reject(error);
       }
@@ -57,6 +64,7 @@ instance.interceptors.response.use(
         if (response.status === 200) {
           const newAccessToken = response.data.data.access_token;
           const newRefreshToken = response.data.data.refresh_token;
+          //về trang đăng nhập nếu không có token mới
 
           // Update the local storage with new tokens
           Cookies.set("access_token", newAccessToken, { expires: 1 });

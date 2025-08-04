@@ -17,6 +17,14 @@ import {
   Favorite,
 } from "@/app/api/FavoriteApi";
 
+import {
+  createLike,
+  unlike,
+  getAllLikesOfUser,
+  Like,
+  getLikeCountByPostId,
+} from "@/app/api/LikeApi";
+
 export interface Post {
   _id: string;
   content: string;
@@ -100,7 +108,6 @@ const CardPost = ({ data }: { data: Post }) => {
       content: e.target.value,
     });
   };
-  console.log(updateCommentState);
 
   const commentMutation = useMutation({
     mutationFn: (data: CreateComment) => createComment(data),
@@ -168,12 +175,12 @@ const CardPost = ({ data }: { data: Post }) => {
     mutationFn: (data: Favorite) => createFavorite(data),
   });
 
-  const handleLike = (
+  const handleFavorite = (
     event: React.MouseEvent<HTMLButtonElement>,
     post_id: string
   ) => {
     event.preventDefault();
-    console.log("like");
+    console.log("favorite");
     likeMutation.mutate(
       { post_id },
       {
@@ -192,22 +199,82 @@ const CardPost = ({ data }: { data: Post }) => {
     mutationFn: (id: string) => unFavorite(id),
   });
 
+  const handleUnFavorite = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    post_id: string
+  ) => {
+    event.preventDefault();
+    console.log("unFavorite");
+    unLikeMutation.mutate(post_id, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["favorites"] });
+        console.log("unFavorite success");
+      },
+    });
+  };
+  const likeMutationPost = useMutation({
+    mutationFn: (data: Like) => createLike(data),
+  });
+
+  const handleLike = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    post_id: string
+  ) => {
+    event.preventDefault();
+    console.log("like");
+    likeMutationPost.mutate(
+      { post_id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["likedPosts"] });
+          console.log("like success");
+        },
+        onError: (error) => {
+          console.error("Error liking post:", error);
+        },
+      }
+    );
+  };
+
+  const unlikeMutationPost = useMutation({
+    mutationFn: (data: { post_id: string }) => unlike(data.post_id),
+  });
+
   const handleUnLike = (
     event: React.MouseEvent<HTMLButtonElement>,
     post_id: string
   ) => {
     event.preventDefault();
-    console.log("unLike");
-    unLikeMutation.mutate(post_id, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["favorites"] });
-        console.log("unLike success");
-      },
-    });
+    console.log("unlike");
+    unlikeMutationPost.mutate(
+      { post_id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["likedPosts"] });
+          console.log("unlike success");
+        },
+        onError: (error) => {
+          console.error("Error unliking post:", error);
+        },
+      }
+    );
   };
-  const handleShare = () => {
-    console.log("share");
-  };
+
+  const { data: likedPostsData } = useQuery({
+    queryKey: ["likedPosts"],
+    queryFn: () => getAllLikesOfUser(),
+  });
+
+  const likedPosts = likedPostsData?.data.post_ids;
+
+  const { data: likeCountData } = useQuery({
+    queryKey: ["likePosts", postId],
+    queryFn: () => getLikeCountByPostId(postId),
+    refetchInterval: 1000,
+  });
+
+  const likeCount = likeCountData?.data.count || 0;
+
   return (
     <div className="card ">
       <div className="container mx-auto mb-7">
@@ -289,7 +356,7 @@ const CardPost = ({ data }: { data: Post }) => {
               <div className="grid grid-cols-12 py-2.5">
                 <div className="flex col-span-10">
                   <div className="pr-2.5">
-                    {favorite?.includes(data._id) ? (
+                    {likedPosts?.includes(data._id) ? (
                       <button
                         onClick={(event) => handleUnLike(event, data._id)}
                         title="Bỏ thích bài viết"
@@ -369,25 +436,54 @@ const CardPost = ({ data }: { data: Post }) => {
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-end mx-2.5">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="size-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
-                    />
-                  </svg>
+                  {favorite?.includes(data._id) ? (
+                    <button
+                      onClick={(event) => handleUnFavorite(event, data._id)}
+                      title="Bỏ lưu bài viết"
+                      aria-label="Bỏ lưu bài viết"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="size-6 text-yellow-300"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
+                        />
+                      </svg>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={(event) => handleFavorite(event, data._id)}
+                      title="Lưu bài viết"
+                      aria-label="Lưu bài viết"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="size-6"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
               <div className=" py-2.5">
                 <div className="font-light text-[13px]">
-                  {data.like} lượt thích
+                  {likeCount} lượt thích
                 </div>
 
                 <div className="block md:hidden text-[13px] line-clamp-2">

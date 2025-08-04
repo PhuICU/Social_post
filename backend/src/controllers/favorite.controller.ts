@@ -21,7 +21,7 @@ const createFavorite = async (
       data: null,
     });
   }
-  await newService.update(post_id, { like: post.like + 1 });
+
   return responseSuccess(res, {
     message: "Favorite created successfully",
     data: result,
@@ -43,14 +43,7 @@ const unFavorite = async (
       data: result,
     });
   }
-  const post = await newService.getPostById(id);
-  if (!post) {
-    return responseSuccess(res, {
-      message: "Không tìm thấy tin đăng",
-      data: null,
-    });
-  }
-  await newService.update(id, { like: post.like - 1 });
+
   return responseSuccess(res, {
     message: "Bỏ yêu thích thành công",
     data: result,

@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
@@ -32,7 +33,9 @@ const CreatePostModal = () => {
       }
     };
 
-    localStorage.setItem("isOpen", JSON.stringify(isOpen));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("isOpen", JSON.stringify(isOpen));
+    }
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
@@ -58,16 +61,9 @@ const CreatePostModal = () => {
         setIsOpen(false);
         alert("Đăng bài thành công");
       })
-      .catch((err) => {
-        console.error("Error creating post:", err);
+      .catch((error) => {
+        console.error("Error creating post:", error);
       });
-    // setIsOpen(false);
-  };
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      submitCreatePost();
-    }
   };
   return (
     <div>

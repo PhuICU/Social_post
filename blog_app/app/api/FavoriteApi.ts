@@ -48,7 +48,7 @@ export const getAllFavoritesOfUser = async () => {
   }
 };
 
-export const getAllFavoritePostsByUserId = async (user_id: string) => {
+export const getAllFavoritePostsByUserId = async () => {
   try {
     const response = await instance.get(`/favorite/all-posts`);
     return response.data;

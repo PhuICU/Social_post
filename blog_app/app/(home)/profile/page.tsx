@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import useUserStore, { User } from "@/app/store/useUserStore";
 import { useShallow } from "zustand/shallow";
 import Link from "next/link";
@@ -11,7 +11,6 @@ import { useQuery } from "@tanstack/react-query";
 import CardPost, { Post } from "@/component/card/card.post";
 
 export default function ProfilePage() {
-  const router = useRouter();
   const user = useUserStore((state) => state.user);
 
   const { data: posts, isLoading } = useQuery({
@@ -56,7 +55,11 @@ export default function ProfilePage() {
             <h1 className="text-lg font-semibold">{user?.full_name}</h1>
             <p className="text-sm text-gray-500">{user?.email}</p>
           </div>
-          <div></div>
+          <div className="ml-auto">
+            <button className="bg-gray-200 text-black text-[13px] px-4 py-2 rounded-md">
+              <p>Chỉnh sửa trang cá nhân</p>
+            </button>
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-8 gap-4 mt-6">

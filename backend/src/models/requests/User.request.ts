@@ -6,5 +6,6 @@ export interface USER_REQUEST {
   email: string;
   avatar?: ImageTypes;
   phone: string;
+  bio: string;
   address: string;
 }

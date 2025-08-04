@@ -9,14 +9,14 @@ const updateProfileVaidator = validateSchema(
         errorMessage: "Tên không được để trống",
       },
     },
-    phone: {
-      in: ["body"],
-      optional: true,
-      isMobilePhone: {
-        options: ["vi-VN"],
-        errorMessage: "Số điện thoại không hợp lệ",
-      },
-    },
+    // phone: {
+    //   in: ["body"],
+    //   optional: true,
+    //   isMobilePhone: {
+    //     options: ["vi-VN"],
+    //     errorMessage: "Số điện thoại không hợp lệ",
+    //   },
+    // },
     email: {
       in: ["body"],
       notEmpty: {

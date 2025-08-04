@@ -1,13 +1,12 @@
 "use client";
-import CardPost, { Post } from "@/component/card/card.post";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { getAllPosts } from "../api/PostApi";
-import useUserStore, { User } from "@/app/store/useUserStore";
-import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+
+const CardPost = lazy(() => import("@/component/card/card.post"));
+import { Post } from "@/component/card/card.post";
 
 export default function Home() {
   const queryClient = useQueryClient();
@@ -19,34 +18,37 @@ export default function Home() {
   } = useQuery({
     queryKey: ["posts"],
     queryFn: getAllPosts,
-    refetchInterval: 5000,
   });
 
   const posts = dataPosts?.data;
-  const router = useRouter();
-  const user = useUserStore((state) => state.user);
 
-  const [accessToken, setAccessToken] = useState<string | undefined>(undefined);
-
-  useEffect(() => {
-    setAccessToken(Cookies.get("access_token"));
-  }, []);
-
-  useEffect(() => {
-    if (user === null && !accessToken) {
-      router.push("/sign-in");
-    }
-  }, [user, accessToken, router]);
-  if (isLoading) return <div>Loading...</div>;
+  // if (isLoading)
+  //   return (
+  //     <div>
+  //       {" "}
+  //       <div
+  //         className="relative z-75"
+  //         aria-labelledby="modal-title"
+  //         role="dialog"
+  //         aria-modal="true"
+  //       >
+  //         <div
+  //           className="fixed inset-0 bg-gray-500/75 transition-opacity"
+  //           aria-hidden="true"
+  //         ></div>
+  //         <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+  //           <div className="flex items-center justify-center h-screen">
+  //             <div className="relative">
+  //               <div className="h-24 w-24 rounded-full border-t-8 border-b-8 border-gray-200"></div>
+  //               <div className="absolute top-0 left-0 h-24 w-24 rounded-full border-t-8 border-b-8 border-blue-500 animate-spin"></div>
+  //             </div>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
   if (error) return <div>Error loading posts</div>;
-  if (!posts) {
-    return <div>Loading...</div>;
-  }
-  if (accessToken === undefined) {
-    // Still hydrating, render nothing or a loading spinner
-    console.log("Access token is undefined, waiting for hydration...");
-    return null;
-  }
+
   return (
     <div className="ml-33">
       <div className="card w-[390px] px-10 flex md:justify-items-center md:w-[700px] sm:w-[550px] lg:w-[600px]">

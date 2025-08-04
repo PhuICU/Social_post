@@ -2,8 +2,9 @@
 import Link from "next/link";
 
 import { register } from "@/app/api/AuthApi";
+import Alert from "@/component/Alert";
+import { useState, useEffect, useMemo, useRef } from "react";
 
-import { useState, useEffect } from "react";
 export default function SignUp() {
   const [account, setAccount] = useState({
     full_name: "",
@@ -11,6 +12,42 @@ export default function SignUp() {
     password: "",
     confirmPassword: "",
   });
+  const [alert, setAlert] = useState<{
+    message: string;
+    type: "success" | "error" | "warning";
+  } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Refs for form inputs
+  const fullNameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmPasswordRef = useRef<HTMLInputElement>(null);
+
+  // Memoized validation state
+  const validationState = useMemo(() => {
+    const { full_name, email, password, confirmPassword } = account;
+    const isFormValid = full_name && email && password && confirmPassword;
+    const isPasswordMatch = password === confirmPassword;
+    const isPasswordValid = password.length >= 8;
+
+    return {
+      isFormValid,
+      isPasswordMatch,
+      isPasswordValid,
+      canSubmit: isFormValid && isPasswordMatch && isPasswordValid,
+    };
+  }, [account]);
+
+  // Memoized alert timeout handler
+  const alertTimeoutHandler = useMemo(() => {
+    return (message: string, type: "success" | "error" | "warning") => {
+      setAlert({ message, type });
+      setTimeout(() => setAlert(null), 5000);
+    };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -20,20 +57,74 @@ export default function SignUp() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { full_name, email, password, confirmPassword } = account;
-    if (password !== confirmPassword) {
-      alert("Mật khẩu không khớp");
+
+    if (!validationState.isFormValid) {
+      alertTimeoutHandler("Vui lòng điền đầy đủ thông tin.", "error");
       return;
     }
+
+    if (!validationState.isPasswordMatch) {
+      alertTimeoutHandler("Mật khẩu không khớp", "error");
+      return;
+    }
+
+    if (!validationState.isPasswordValid) {
+      alertTimeoutHandler("Mật khẩu phải có ít nhất 8 ký tự", "error");
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const data = await register(account);
-      localStorage.setItem("user", JSON.stringify(data.data));
+      setIsLoading(false);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("user", JSON.stringify(data.data));
+      }
       console.log(data);
-      alert("Đăng ký thành công");
+      alertTimeoutHandler("Đăng ký thành công", "success");
     } catch (error) {
       console.error(error);
+      setIsLoading(false);
+      alertTimeoutHandler(
+        "Đăng ký không thành công. Vui lòng thử lại.",
+        "error"
+      );
     }
   };
+
+  // Focus first input on mount
+  useEffect(() => {
+    if (fullNameRef.current) {
+      fullNameRef.current.focus();
+    }
+  }, []);
+
   console.log("account", account);
+
+  if (isLoading) {
+    return (
+      <div
+        className="relative z-75"
+        aria-labelledby="modal-title"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div
+          className="fixed inset-0 bg-gray-500/75 transition-opacity"
+          aria-hidden="true"
+        ></div>
+        <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+          <div className="flex items-center justify-center h-screen">
+            <div className="relative">
+              <div className="h-24 w-24 rounded-full border-t-8 border-b-8 border-gray-200"></div>
+              <div className="absolute top-0 left-0 h-24 w-24 rounded-full border-t-8 border-b-8 border-blue-500 animate-spin"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid justify-items-center  my-10">
       <div className=" px-10 flex md:justify-items-center ">
@@ -49,6 +140,7 @@ export default function SignUp() {
           <div>
             <p className="text-gray-600">Tên tài khoản của bạn</p>
             <input
+              ref={fullNameRef}
               type="text"
               placeholder="Tên đăng nhập"
               name="full_name"
@@ -59,6 +151,7 @@ export default function SignUp() {
           <div>
             <p className="text-gray-600">Địa chỉ email của bạn</p>
             <input
+              ref={emailRef}
               type="email"
               placeholder="Email"
               name="email"
@@ -67,7 +160,7 @@ export default function SignUp() {
             />
           </div>
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col  justify-between">
               <div>
                 {" "}
                 <p className="text-gray-600">
@@ -75,60 +168,75 @@ export default function SignUp() {
                   <span className="text-sm">(Tối thiểu 8 ký tự)</span>
                 </p>
               </div>
-              <div>
-                <svg
-                  className="px-1.5 h-8 w-8 "
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="flex items-center border border-gray-300 rounded-md px-1 py-1 bg-white">
+                {" "}
+                <input
+                  ref={passwordRef}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Mật khẩu"
+                  name="password"
+                  onChange={handleChange}
+                  className="flex-1 outline-none bg-transparent text-sm  rounded-md pl-2 w-full"
+                />
+                <button
+                  type="button"
+                  className="text-gray-500"
+                  onClick={() => setShowPassword(!showPassword)}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
+                  {" "}
+                  <svg
+                    className="px-1.5 h-8 w-8 "
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
-
-            <input
-              type="password"
-              placeholder="Mật khẩu"
-              name="password"
-              onChange={handleChange}
-              className="border border-gray-300 rounded-md p-2 w-full"
-            />
           </div>
           <div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col justify-between">
               <div>
                 <p className="text-gray-600">Xác nhận mật khẩu của bạn</p>
               </div>
-              <div>
-                <svg
-                  className="px-1.5 h-8 w-8 "
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              <div className="flex items-center border border-gray-300 rounded-md px-1 py-1 bg-white">
+                <input
+                  ref={confirmPasswordRef}
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Xác nhận mật khẩu"
+                  name="confirmPassword"
+                  onChange={handleChange}
+                  className="flex-1 outline-none bg-transparent text-sm  rounded-md pl-2 w-full"
+                />
+                <button
+                  type="button"
+                  className="text-gray-500"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
+                  {" "}
+                  <svg
+                    className="px-1.5 h-8 w-8 "
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
-
-            <input
-              type="password"
-              placeholder="Xác nhận mật khẩu"
-              name="confirmPassword"
-              onChange={handleChange}
-              className="border border-gray-300 rounded-md p-2 w-full"
-            />
           </div>
           <div>
             <p>
@@ -172,6 +280,14 @@ export default function SignUp() {
           </span>
         </p>
       </div>
+
+      {alert && (
+        <Alert
+          message={alert.message}
+          type={alert.type}
+          onClose={() => setAlert(null)}
+        />
+      )}
     </div>
   );
 }

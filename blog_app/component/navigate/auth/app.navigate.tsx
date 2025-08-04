@@ -54,7 +54,7 @@ const AppNavigate = () => {
               <li>Cài đặt</li>
             </ul>
           </div>
-          <div className="search my-2">
+          <div className="search py-1.5 my-3">
             <div className="relative">
               <button onClick={toggleLanguageMenu}>
                 {Language.find((l) => l.code === lang)?.name || "Language"}
