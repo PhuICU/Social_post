@@ -1,292 +1,87 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+
+import useUserStore from "@/app/store/useUserStore";
+
+import { getLikeCountByPostId } from "@/app/api/LikeApi";
 
 import { getUserById } from "@/app/api/AuthApi";
-import {
-  getCommentsOfPostId,
-  createComment,
-  updateComment,
-  deleteComment,
-} from "@/app/api/CommentApi";
-import {
-  createFavorite,
-  unFavorite,
-  getAllFavoritesOfUser,
-  Favorite,
-} from "@/app/api/FavoriteApi";
 
-import {
-  createLike,
-  unlike,
-  getAllLikesOfUser,
-  Like,
-  getLikeCountByPostId,
-} from "@/app/api/LikeApi";
+import CardComment from "./card.comp/card.comment";
+import ButtonFavorite from "../button/button.favorite";
+import ButtonLike from "../button/button.like";
+import ModalCustomPost from "../modal/modal.custom-post";
 
 export interface Post {
   _id: string;
   content: string;
   poster_id: string;
-  images: string[];
+  images: {
+    url: string;
+    public_id: string;
+    _id: string;
+  }[];
   video: string[];
   like: number;
   view: number;
+  created_date: Date;
 }
 
-type Comment = {
-  _id: string;
-  content: string;
-  user_id: string;
-  post_id: string;
-  user: {
-    _id: string;
-    full_name: string;
-    avatar: {
-      url: string;
-    };
-  };
-};
-
-type CreateComment = {
-  content: string;
-  user_id: string;
-  post_id: string;
-};
-
 const CardPost = ({ data }: { data: Post }) => {
-  const [user, setUser] = useState<{
-    _id: string;
-    full_name: string;
-    avatar: { url: string };
-  } | null>(null);
+  const user = useUserStore((state) => state.user);
+  const [isComment, setIsComment] = useState(false);
   const postId = data._id;
-  const [updateId, setUpdateId] = useState("");
-
-  const [viewComment, setViewComment] = useState(false);
-  const [addComment, setAddComment] = useState<CreateComment>({
-    content: "",
-    user_id: user?._id || "",
-    post_id: data._id,
-  });
-  const [updateCommentState, setUpdateCommentState] = useState<CreateComment>({
-    content: "",
-    user_id: "",
-    post_id: "",
-  });
-  const [showMenuId, setShowMenuId] = useState<string | null>(null);
-  const [setUpdateComment, setSetUpdateComment] = useState(false);
-
-  useEffect(() => {
-    if (!user) {
-      getUserById(data.poster_id).then((response) => {
-        setUser(response.data);
-      });
-    }
-  }, [data.poster_id, user, setUser]);
-
-  const handleViewComment = () => {
-    setViewComment(!viewComment);
-  };
-
-  const { data: commentData } = useQuery({
-    queryKey: ["comments", postId],
-    queryFn: () => getCommentsOfPostId(postId),
-  });
-
-  const comment = commentData?.data;
-
-  const handleChangeComment = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setAddComment({
-      ...addComment,
-      user_id: user?._id || "",
-      content: e.target.value,
-    });
-    setUpdateCommentState({
-      ...updateCommentState,
-      content: e.target.value,
-    });
-  };
-
-  const commentMutation = useMutation({
-    mutationFn: (data: CreateComment) => createComment(data),
-  });
-
-  const handleCreateComment = (data: CreateComment) => {
-    commentMutation.mutate(data, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-        setAddComment({
-          content: "",
-          user_id: user?._id || "",
-          post_id: postId,
-        });
-        setViewComment(true);
-      },
-    });
-  };
-
-  const deleteCommentMutation = useMutation({
-    mutationFn: (id: string) => deleteComment(id),
-  });
-  const handleDeleteComment = (id: string) => {
-    deleteCommentMutation.mutate(id, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-      },
-    });
-  };
-
-  const updateCommentMutation = useMutation({
-    mutationFn: (data: CreateComment) => updateComment(updateId, data),
-  });
-  const handleUpdateComment = (data: CreateComment) => {
-    updateCommentMutation.mutate(data, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-        setShowMenuId(null);
-        setUpdateCommentState({
-          content: "",
-          user_id: "",
-          post_id: "",
-        });
-        setSetUpdateComment(false);
-        setUpdateId("");
-        setAddComment({
-          content: "",
-          user_id: "",
-          post_id: "",
-        });
-      },
-    });
-  };
-
-  const { data: favoritesData } = useQuery({
-    queryKey: ["favorites"],
-    queryFn: () => getAllFavoritesOfUser(),
-  });
-
-  const favorite = favoritesData?.data.post_ids;
-
-  const queryClient = useQueryClient();
-
-  const likeMutation = useMutation({
-    mutationFn: (data: Favorite) => createFavorite(data),
-  });
-
-  const handleFavorite = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    post_id: string
-  ) => {
-    event.preventDefault();
-    console.log("favorite");
-    likeMutation.mutate(
-      { post_id },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["favorites"] });
-          console.log("like success");
-        },
-        onError: (error) => {
-          console.error("Error liking post:", error);
-        },
-      }
-    );
-  };
-
-  const unLikeMutation = useMutation({
-    mutationFn: (id: string) => unFavorite(id),
-  });
-
-  const handleUnFavorite = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    post_id: string
-  ) => {
-    event.preventDefault();
-    console.log("unFavorite");
-    unLikeMutation.mutate(post_id, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["favorites"] });
-        console.log("unFavorite success");
-      },
-    });
-  };
-  const likeMutationPost = useMutation({
-    mutationFn: (data: Like) => createLike(data),
-  });
-
-  const handleLike = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    post_id: string
-  ) => {
-    event.preventDefault();
-    console.log("like");
-    likeMutationPost.mutate(
-      { post_id },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["likedPosts"] });
-          console.log("like success");
-        },
-        onError: (error) => {
-          console.error("Error liking post:", error);
-        },
-      }
-    );
-  };
-
-  const unlikeMutationPost = useMutation({
-    mutationFn: (data: { post_id: string }) => unlike(data.post_id),
-  });
-
-  const handleUnLike = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    post_id: string
-  ) => {
-    event.preventDefault();
-    console.log("unlike");
-    unlikeMutationPost.mutate(
-      { post_id },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["likedPosts"] });
-          console.log("unlike success");
-        },
-        onError: (error) => {
-          console.error("Error unliking post:", error);
-        },
-      }
-    );
-  };
-
-  const { data: likedPostsData } = useQuery({
-    queryKey: ["likedPosts"],
-    queryFn: () => getAllLikesOfUser(),
-  });
-
-  const likedPosts = likedPostsData?.data.post_ids;
-
-  const { data: likeCountData } = useQuery({
+  const [isModalCustomPost, setIsModalCustomPost] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const { data: likeCountData, refetch } = useQuery({
     queryKey: ["likePosts", postId],
     queryFn: () => getLikeCountByPostId(postId),
-    refetchInterval: 1000,
   });
 
   const likeCount = likeCountData?.data.count || 0;
 
+  const { data: authorData } = useQuery({
+    queryKey: ["author", data.poster_id],
+    queryFn: () => getUserById(data.poster_id),
+  });
+  const author = authorData?.data;
+
+  const TimePost = () => {
+    const createdAt = new Date(data.created_date);
+    const now = new Date();
+    const diffInSeconds = Math.floor(
+      (now.getTime() - createdAt.getTime()) / 1000
+    );
+
+    let timeAgo = "";
+    if (diffInSeconds < 60) {
+      timeAgo = `${diffInSeconds} giây trước`;
+    } else if (diffInSeconds < 3600) {
+      timeAgo = `${Math.floor(diffInSeconds / 60)} phút trước`;
+    } else if (diffInSeconds < 86400) {
+      timeAgo = `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+    } else {
+      timeAgo = `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+    }
+
+    return <span>{timeAgo}</span>;
+  };
+
   return (
     <div className="card ">
       <div className="container mx-auto mb-7">
-        <div className="bg-white p-4 rounded-md shadow-md">
+        <div className="bg-white rounded-md shadow-md">
           <div>
             <div className="flex-shrink-0">
-              <div className="grid grid-cols-12  ">
+              <div className="grid grid-cols-12 p-3">
                 <div className="col-span-1">
-                  {user?.avatar && user?.avatar?.url !== "" ? (
+                  {author?.avatar && author?.avatar?.url !== "" ? (
                     <Image
                       className="md:h-10 md:w-10 h-8 w-9 rounded-full"
-                      src={user?.avatar?.url}
+                      src={author?.avatar?.url}
                       alt="avatar"
                       width={40}
                       height={40}
@@ -294,7 +89,7 @@ const CardPost = ({ data }: { data: Post }) => {
                   ) : (
                     <Image
                       className="md:h-10 md:w-10 h-8 w-9 rounded-full"
-                      src={"/avatar.png"}
+                      src="/avatar.png"
                       alt="avatar"
                       width={40}
                       height={40}
@@ -302,11 +97,13 @@ const CardPost = ({ data }: { data: Post }) => {
                   )}
                 </div>
                 <div className="col-span-10 items-center ">
-                  <div className="font-semibold px-3.5 text-[13px] md:text-[15px]">
-                    {user?.full_name}
+                  <div className="font-semibold px-1.5 text-[13px] md:text-[15px]">
+                    <Link href={`/user/${author?.slug}`}>
+                      {author?.full_name}
+                    </Link>
                   </div>
-                  <div className="px-4.5 py-1.5 text-[13px] text-[#606770] flex">
-                    <span>1 ngày trước . </span>{" "}
+                  <div className="px-1.5 py-0.5 text-[13px] text-[#606770] flex">
+                    <span>{TimePost()} . </span>{" "}
                     <span>
                       {" "}
                       <svg
@@ -325,83 +122,103 @@ const CardPost = ({ data }: { data: Post }) => {
                   </div>
                 </div>
                 <div className="col-span-1 flex justify-end">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 16 16"
-                    fill="currentColor"
-                    className="size-4"
+                  <button
+                    title="Mở cài đặt"
+                    onClick={() => setIsModalCustomPost(true)}
                   >
-                    <path d="M2 8a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM6.5 8a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM12.5 6.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
-                  </svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 16 16"
+                      fill="currentColor"
+                      className="size-4"
+                    >
+                      <path d="M2 8a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM6.5 8a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM12.5 6.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" />
+                    </svg>
+                  </button>
                 </div>
               </div>
-              <div className="py-0.5">
+              <div className="pt-1.5">
                 {data.content && data.content !== "" ? (
-                  <div className="hidden md:block text-[13px]">
-                    <span className="font-semibold">{user?.full_name}</span>{" "}
+                  <div className="hidden md:block text-[13px] px-3">
+                    <span className="font-semibold">{author?.full_name}</span>{" "}
                     {data.content}
                   </div>
                 ) : null}
 
-                {data.images.length > 0 ? (
-                  <Image
-                    className="w-full h-64 object-cover mt-4"
-                    src={data.images[0]}
-                    alt="image"
-                    width={100}
-                    height={100}
-                  />
-                ) : null}
+                {data.images.length <= 4 ? (
+                  <div
+                    className={`grid gap-1 ${
+                      data.images.length === 1
+                        ? "grid-cols-1"
+                        : data.images.length === 2
+                        ? "grid-cols-2"
+                        : data.images.length === 3
+                        ? "grid-cols-3"
+                        : "grid-cols-4"
+                    }`}
+                  >
+                    {data.images.map((image, index) => (
+                      <Link
+                        key={index}
+                        href={`/photo/${data._id}?set=${index}`}
+                      >
+                        <Image
+                          className="w-full h-64 object-cover mt-4 col-span-1 cursor-pointer"
+                          src={image.url}
+                          alt={`Post image ${index + 1}`}
+                          width={400}
+                          height={400}
+                          unoptimized
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  //hiện 3 hình còn lại cộng số lượng hình còn lại
+                  <div className="grid grid-cols-4 gap-1 mt-4">
+                    {data.images.slice(0, 3).map((image, index) => (
+                      <Link
+                        key={index}
+                        href={`/photo/${data._id}?set=${index}`}
+                      >
+                        <Image
+                          className="w-full h-64 object-cover col-span-1 cursor-pointer"
+                          src={image.url}
+                          alt={`Post image ${index + 1}`}
+                          width={400}
+                          height={400}
+                          unoptimized
+                        />
+                      </Link>
+                    ))}
+                    <button className="text-center">
+                      <div className="relative w-full h-64">
+                        <img
+                          src={data.images[3].url}
+                          alt={`Post image 4`}
+                          className="w-full h-full object-cover"
+                        />
+                        {/* overlay tối + chữ */}
+                        <div className="absolute inset-0 bg-gray-900/75 flex items-center justify-center">
+                          <span className="text-white text-lg font-bold">
+                            +{data.images.length - 3}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="grid grid-cols-12 py-2.5">
+              <div className="grid grid-cols-12 p-2.5">
                 <div className="flex col-span-10">
                   <div className="pr-2.5">
-                    {likedPosts?.includes(data._id) ? (
-                      <button
-                        onClick={(event) => handleUnLike(event, data._id)}
-                        title="Bỏ thích bài viết"
-                        aria-label="Bỏ thích bài viết"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="size-6 text-red-500"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                          />
-                        </svg>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={(event) => handleLike(event, data._id)}
-                        title="Thích bài viết"
-                        aria-label="Thích bài viết"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="size-6"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
-                          />
-                        </svg>
-                      </button>
-                    )}
+                    <ButtonLike postId={data._id} onLike={refetch} />
                   </div>
                   <div className="px-2.5">
-                    <button title="View comments" onClick={handleViewComment}>
+                    <button
+                      title="View comments"
+                      onClick={() => setIsComment(!isComment)}
+                    >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -436,52 +253,10 @@ const CardPost = ({ data }: { data: Post }) => {
                   </div>
                 </div>
                 <div className="col-span-2 flex justify-end mx-2.5">
-                  {favorite?.includes(data._id) ? (
-                    <button
-                      onClick={(event) => handleUnFavorite(event, data._id)}
-                      title="Bỏ lưu bài viết"
-                      aria-label="Bỏ lưu bài viết"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="size-6 text-yellow-300"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
-                        />
-                      </svg>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(event) => handleFavorite(event, data._id)}
-                      title="Lưu bài viết"
-                      aria-label="Lưu bài viết"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="size-6"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z"
-                        />
-                      </svg>
-                    </button>
-                  )}
+                  <ButtonFavorite postId={data._id} />
                 </div>
               </div>
-              <div className=" py-2.5">
+              <div className=" p-2.5">
                 <div className="font-light text-[13px]">
                   {likeCount} lượt thích
                 </div>
@@ -491,171 +266,26 @@ const CardPost = ({ data }: { data: Post }) => {
                   nhạc sĩ nổi tiếng với nhiều bản hit đình đám...
                 </div>
               </div>
-              <div className="border-t-2 border-gray-200 py-2.5">
-                <div className="font-semibold px-3.5">Bình luận</div>
-                <div className="flex justify-between my-3.5">
-                  <span className="font-light px-3.5 text-[gray] text-[13px]">
-                    Có 1.000 bình luận
-                  </span>
-                  <span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="size-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-                      />
-                    </svg>
-                  </span>
-                </div>
-                {viewComment ? (
-                  <>
-                    {comment && comment.length > 0 ? (
-                      comment.map((item: Comment) => (
-                        <div
-                          className="grid grid-cols-12 mx-3 my-3.5"
-                          key={item._id}
-                        >
-                          <div className="col-span-1 hidden lg:block">
-                            <img
-                              className="h-8 w-8 rounded-full"
-                              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS221fOmoEQSIbhaczO-ag4OUNcia9vwvP9Mg&s"
-                              alt=""
-                            />
-                          </div>
-                          <div className="col-span-10 hidden lg:block">
-                            <div className="bg-gray-100 rounded-md p-2.5">
-                              <div className="font-semibold text-[15px]">
-                                {item.user.full_name}
-                              </div>
-                              <div className="font-light text-[13px]">
-                                {item.content}
-                              </div>
-                            </div>
-                          </div>
-
-                          {user?._id === item.user._id ? (
-                            <div className="relative col-span-12 lg:col-span-1 flex justify-center ml-1 mt-2 h-5 w-5">
-                              <button
-                                className="hover:bg-gray-100 rounded-full"
-                                title="Menu"
-                                onClick={() =>
-                                  setShowMenuId(
-                                    showMenuId === item._id ? null : item._id
-                                  )
-                                }
-                              >
-                                <Image
-                                  src={"/ellipsis-vertical-solid-full.svg"}
-                                  alt="menu"
-                                  width={15}
-                                  height={15}
-                                />
-                              </button>
-                              {showMenuId === item._id && (
-                                <div className="absolute z-10 top-8 right-0 w-64 bg-white rounded-xl shadow-lg p-4">
-                                  <div className="font-semibold cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                    <button
-                                      onClick={() =>
-                                        handleDeleteComment(item._id)
-                                      }
-                                    >
-                                      Xóa bình luận
-                                    </button>
-                                  </div>
-                                  <div className="font-semibold cursor-pointer hover:bg-gray-100 p-2 rounded">
-                                    <button
-                                      onClick={() => {
-                                        setSetUpdateComment(true);
-                                        setUpdateCommentState({
-                                          content: item.content,
-                                          user_id: item.user._id,
-                                          post_id: postId,
-                                        });
-                                        setShowMenuId(null);
-                                        setUpdateId(item._id);
-                                      }}
-                                    >
-                                      Chỉnh sửa bình luận
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : null}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center text-gray-500">
-                        Không có bình luận
-                      </div>
-                    )}
-                  </>
-                ) : null}{" "}
-                <div className="grid grid-cols-12 mx-3 ">
-                  <div className="col-span-11">
-                    {!setUpdateComment ? (
-                      <input
-                        type="content"
-                        title="Comment"
-                        placeholder="Bình luận..."
-                        className="w-full rounded-md p-2.5 mt-2 border border-gray-200 dark:bg-gray-800 dark:border-gray-700"
-                        onChange={(e) => {
-                          handleChangeComment(e as any);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleCreateComment(addComment);
-                          }
-                        }}
-                        value={addComment.content}
-                      />
-                    ) : (
-                      <input
-                        type="content"
-                        title="Comment"
-                        placeholder="Bình luận..."
-                        className="w-full rounded-md p-2.5 mt-2 border border-gray-200 dark:bg-gray-800 dark:border-gray-700"
-                        onChange={(e) => {
-                          handleChangeComment(e as any);
-                        }}
-                        value={updateCommentState.content}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            handleUpdateComment(updateCommentState);
-                          }
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div className="my-4.5 col-span-1 flex justify-end">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="size-6"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75Zm-.375 0h.008v.015h-.008V9.75Z"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+              <CardComment postId={data._id} isComment={isComment} />
             </div>
           </div>
         </div>
       </div>
+      {isModalCustomPost && (
+        <div
+          className="relative z-50"
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
+          ref={modalRef}
+        >
+          <div
+            className="fixed inset-0 bg-gray-500/75 transition-opacity"
+            aria-hidden="true"
+          ></div>
+          <ModalCustomPost setIsOpenModal={setIsModalCustomPost} />
+        </div>
+      )}
     </div>
   );
 };

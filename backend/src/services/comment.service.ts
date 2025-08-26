@@ -39,8 +39,8 @@ class CommentsService {
           $project: {
             _id: 1,
             content: 1,
-            created_at: 1,
-            updated_at: 1,
+            created_date: 1,
+            updated_date: 1,
             user: {
               $arrayElemAt: ["$user", 0],
             },

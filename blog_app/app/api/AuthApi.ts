@@ -1,13 +1,13 @@
 import instance from "./apiContanst";
 
-type User = {
+export type User = {
   id?: number;
   email: string;
 
   full_name?: string;
   phone?: string;
   address?: string;
-  avatar?: { url: string } | null;
+  avatar?: { url: string; public_id: string } | null;
   bio?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -90,14 +90,14 @@ export const updateProfile = async (user: User) => {
 };
 export const changePassword = async (
   user_id: string,
-  oldPassword: string,
-  newPassword: string
+  new_password: string,
+  old_password: string
 ) => {
   try {
-    const response = await instance.put(`/user/change-password`, {
+    const response = await instance.post(`/user/change-password`, {
       user_id,
-      oldPassword,
-      newPassword,
+      new_password,
+      old_password,
     });
     return response.data;
   } catch (error) {
@@ -116,14 +116,44 @@ export const forgotPassword = async (email: string) => {
 };
 
 export const resetPassword = async (data: {
-  password: string,
-    confirmPassword: string,
+  password: string;
+  confirmPassword: string;
 }) => {
   try {
     const response = await instance.post(`/user/reset-password`, data);
     return response.data;
   } catch (error) {
     console.error("Error resetting password:", error);
+    throw error;
+  }
+};
+
+export const lockAccount = async (user_id: string) => {
+  try {
+    const response = await instance.put(`/user/lock-account/${user_id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error locking account:", error);
+    throw error;
+  }
+};
+
+export const unlockAccount = async (user_id: string) => {
+  try {
+    const response = await instance.put(`/user/unlock-account/${user_id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error unlocking account:", error);
+    throw error;
+  }
+};
+
+export const getUserBySlug = async (slug: string) => {
+  try {
+    const response = await instance.get(`/user/slug/${slug}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user by slug:", error);
     throw error;
   }
 };

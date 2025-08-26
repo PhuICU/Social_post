@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { ImageTypes, VideoTypes } from "~/type";
+import { SCOPE_TYPE } from "~/enum/utiils.enum";
 
 interface PostType {
   _id?: ObjectId;
@@ -9,6 +10,7 @@ interface PostType {
   view?: number;
   like?: number;
   comment?: number;
+  scope: SCOPE_TYPE;
   updated_date?: Date;
   images?: ImageTypes[];
   videos?: VideoTypes[];
@@ -21,6 +23,7 @@ export class POSTS_SCHEMA {
   view: number;
   like: number;
   comment: number;
+  scope: SCOPE_TYPE;
   updated_date: Date;
   images: ImageTypes[];
   videos: VideoTypes[];
@@ -32,6 +35,7 @@ export class POSTS_SCHEMA {
     this.view = news.view || 0;
     this.like = news.like || 0;
     this.comment = news.comment || 0;
+    this.scope = news.scope || SCOPE_TYPE.PUBLIC;
     this.updated_date = news.updated_date || new Date();
     this.images = news.images || [];
     this.videos = news.videos || [];

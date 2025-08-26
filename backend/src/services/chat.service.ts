@@ -5,10 +5,14 @@ import { ObjectId } from "mongodb";
 import { ErrorWithMessage } from "~/utils/error";
 
 class ChatService {
+  /**
+   * Tạo cuộc trò chuyện mới giữa 2 user
+   */
   async createChat(chat: CHAT_REQUEST) {
+    // Kiểm tra xem đã tồn tại chat giữa 2 user chưa
     const chatExist = await databaseService.chats.findOne({
-      member: {
-        $all: [new ObjectId(chat.member[0]), new ObjectId(chat.member[1])],
+      members: {
+        $all: [new ObjectId(chat.members[0]), new ObjectId(chat.members[1])],
       },
     });
 
@@ -16,36 +20,44 @@ class ChatService {
       throw new ErrorWithMessage({ message: "Chat đã tồn tại", status: 400 });
     }
 
-    console.log(chat);
-
-    return await databaseService.chats.insertOne({
+    const newChat: CHAT_SCHEMA = {
       _id: new ObjectId(),
-      member: chat.member.map((id) => new ObjectId(id)),
-      messages: [],
-      created_date: new Date(),
-      updated_date: new Date(),
-    } as CHAT_SCHEMA);
+      members: chat.members.map((id) => new ObjectId(id)),
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
+    await databaseService.chats.insertOne(newChat);
+    return newChat;
   }
 
-  async getChats(chat: CHAT_REQUEST) {
+  /**
+   * Lấy thông tin chat giữa 2 user (nếu có)
+   */
+  async getChat(chat: CHAT_REQUEST) {
     return await databaseService.chats.findOne({
-      member: {
-        $all: [new ObjectId(chat.member[0]), new ObjectId(chat.member[1])],
+      members: {
+        $all: [new ObjectId(chat.members[0]), new ObjectId(chat.members[1])],
       },
     });
   }
 
-  async getUsersChat(userId: string) {
+  /**
+   * Lấy tất cả chat mà user tham gia
+   */
+  async getUserChats(userId: string) {
     return await databaseService.chats
-      .find({ member: { $in: [new ObjectId(userId)] } })
+      .find({ members: { $in: [new ObjectId(userId)] } })
       .toArray();
   }
 
+  /**
+   * Tìm chat theo id
+   */
   async findChatById(id: string) {
     return await databaseService.chats.findOne({ _id: new ObjectId(id) });
   }
 }
 
 const chatService = new ChatService();
-
 export default chatService;

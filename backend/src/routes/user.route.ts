@@ -210,7 +210,7 @@ userRoutes.put(
 userRoutes.put(
   "/lock-account/:user_id",
   commonMiddlewares.accessTokenValidator,
-  commonMiddlewares.isAdmin,
+  // commonMiddlewares.isAdmin,
   wrapRequestHandler(usersControllers.lockAccount)
 );
 /**
@@ -244,5 +244,10 @@ userRoutes.get(
 userRoutes.post("/check-otp", wrapRequestHandler(commonControllers.checkOtp));
 
 userRoutes.get("/:id", wrapRequestHandler(usersControllers.getUserById));
+
+userRoutes.get(
+  "/slug/:slug",
+  wrapRequestHandler(usersControllers.getUserBySlug)
+);
 
 export default userRoutes;

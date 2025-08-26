@@ -134,7 +134,6 @@ const forgotPassword = async (
   req: Request<ParamsDictionary, any, any, any>,
   res: Response
 ) => {
-  console.log("user", req);
   const user = req.user as USER_SCHEMA;
 
   const result = await userService.forgotPassword(user);
@@ -150,7 +149,6 @@ const resetPassword = async (
   req: Request<ParamsDictionary, any, { email: string; password: string }, any>,
   res: Response
 ) => {
-  console.log("user", req.body);
   const user = await userService.getUserByEmail(req.body.email);
   if (!user) {
     return res.status(404).json({ message: "User not found" });

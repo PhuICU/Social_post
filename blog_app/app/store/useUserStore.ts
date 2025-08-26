@@ -8,8 +8,13 @@ export interface User {
   address?: string;
   email: string;
   phone?: string;
-  avatar: { url: string };
+  avatar: {
+    url: string;
+    public_id: string;
+  };
   bio: string;
+  verify: string;
+  slug: string;
 }
 
 interface StoreState {

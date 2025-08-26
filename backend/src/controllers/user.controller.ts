@@ -90,7 +90,7 @@ const lockAccount = async (
   res: Response
 ) => {
   const { user_id } = req.params;
-  console.log("user_id", req.params, user_id);
+
   if (!user_id)
     return responseSuccess(res, {
       message: "Không tìm thấy user_id",
@@ -114,7 +114,7 @@ const unlockAccount = async (
   res: Response
 ) => {
   const { user_id } = req.params;
-  console.log("user_id", req.params, user_id);
+
   if (!user_id)
     return responseSuccess(res, {
       message: "Không tìm thấy user_id",
@@ -151,7 +151,6 @@ const getUserById = async (
   res: Response
 ) => {
   const { id } = req.params;
-  console.log("user_id", req.params, id);
 
   if (!id) {
     return res.status(400).json({ error: "User ID is required" });
@@ -159,6 +158,28 @@ const getUserById = async (
 
   try {
     const result = await userService.getUserById(id);
+    return responseSuccess(res, {
+      message: "Lấy thông tin người dùng thành công",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+const getUserBySlug = async (
+  req: Request<ParamsDictionary, any, any, any>,
+  res: Response
+) => {
+  const { slug } = req.params;
+
+  if (!slug) {
+    return res.status(400).json({ error: "Slug is required" });
+  }
+
+  try {
+    const result = await userService.getUserBySlug(slug);
     return responseSuccess(res, {
       message: "Lấy thông tin người dùng thành công",
       data: result,
@@ -181,5 +202,6 @@ const usersControllers = {
   unlockAccount,
   getAllUsers,
   getUserById,
+  getUserBySlug,
 };
 export default usersControllers;

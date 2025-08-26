@@ -18,6 +18,7 @@ const uploadImagesRoutes = Router();
 
 uploadImagesRoutes.post(
   "/single-image",
+  commonMiddlewares.accessTokenValidator,
   upload.single("image"),
   wrapRequestHandler(uploadImageControllers.uploadCloudinarySingleImage)
 );
@@ -43,6 +44,7 @@ uploadImagesRoutes.get(
  */
 uploadImagesRoutes.post(
   "/multiple-images",
+  commonMiddlewares.accessTokenValidator,
   upload.array("images"),
   wrapRequestHandler(uploadImageControllers.uploadCloudinaryMultipleImages)
 );
@@ -56,4 +58,11 @@ uploadImagesRoutes.put(
   commonMiddlewares.accessTokenValidator,
   wrapRequestHandler(uploadImageControllers.destroyImages)
 );
+
+uploadImagesRoutes.get(
+  "/user/:id",
+  commonMiddlewares.accessTokenValidator,
+  wrapRequestHandler(uploadImageControllers.getImageByIdUser)
+);
+
 export default uploadImagesRoutes;

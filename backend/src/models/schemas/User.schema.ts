@@ -17,6 +17,7 @@ interface UserType {
   forgot_password_token?: string;
   email_verify_token?: string;
   locked_posts?: ObjectId[];
+  friends?: ObjectId[];
   created_at?: Date;
   updated_at?: Date;
 }
@@ -36,6 +37,7 @@ export class USER_SCHEMA {
   forgot_password_token: string;
   email_verify_token: string;
   locked_posts: ObjectId[];
+  friends: ObjectId[];
   created_at: Date;
   updated_at: Date;
 
@@ -55,11 +57,13 @@ export class USER_SCHEMA {
       updated_at: "",
     };
     this.bio = user.bio || "";
-    this.slug = user.full_name.toLowerCase().replace(/\s+/g, "-");
+    //lấy slug từ kí tự trước dấu @ của gmail
+    this.slug = user.email.split("@")[0];
     this.address = user.address || "";
     this.forgot_password_token = user.forgot_password_token || "";
     this.email_verify_token = user.email_verify_token || "";
     this.locked_posts = user.locked_posts || [];
+    this.friends = user.friends || [];
     this.created_at = user.created_at || new Date();
     this.updated_at = user.updated_at || new Date();
   }

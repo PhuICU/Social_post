@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import useSystemStore from "./store/useSystemStore";
+import useSystemStore from "../store/useSystemStore";
 
 export default function ThemeProvider({
   children,

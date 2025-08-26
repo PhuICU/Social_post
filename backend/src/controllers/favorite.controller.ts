@@ -5,7 +5,8 @@ import favoriteService from "~/services/favorite.service";
 import newService from "~/services/post.service";
 import { TokenPayload } from "~/type";
 import { responseError, responseSuccess } from "~/utils/response";
-
+import notificationController from "../controllers/notification.controller";
+import userService from "~/services/user.service";
 const createFavorite = async (
   req: Request<ParamsDictionary, any, FAVORITE_REQUEST, any>,
   res: Response
@@ -14,13 +15,24 @@ const createFavorite = async (
   const { user_id } = req.decoded_access_token as TokenPayload;
   const result = await favoriteService.createFavorite({ post_id, user_id });
   const post = await newService.getPostById(post_id);
-
   if (!post) {
     return responseSuccess(res, {
       message: "Không tìm thấy tin đăng",
       data: null,
     });
   }
+
+  // Create a mock request object for notification creation
+  const notificationReq = {
+    body: {
+      userId: post?.poster_id?.toString(),
+      type: "like",
+      content: "Bài viết của bạn được ai đó thích 👍",
+      fromUser: user_id,
+    },
+  } as Request;
+
+  await notificationController.createNotification(notificationReq, res);
 
   return responseSuccess(res, {
     message: "Favorite created successfully",
@@ -62,12 +74,12 @@ const getFavoritesByUserIdAndPostId = async (
       data: [],
     });
   }
-  console.log(user_id, post_id);
+
   const result = await favoriteService.getFavoritesByUserIdAndPostId(
     user_id as string,
     post_id as string
   );
-  console.log(result);
+
   return responseSuccess(res, {
     message: "Truy xuất lượt thích thành công",
     data: result,

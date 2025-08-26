@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { login } from "@/app/api/AuthApi";
 import Cookies from "js-cookie";
 import useUserStore, { User } from "@/app/store/useUserStore";
+import { setLocalStorage } from "@/app/hook/LocalStore";
 import { useShallow } from "zustand/shallow";
 import Alert from "@/component/Alert";
 
@@ -179,6 +180,19 @@ export default function SignIn() {
         "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
         "error"
       );
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof (error as any).response === "object" &&
+        (error as any).response !== null &&
+        "data" in (error as any).response &&
+        typeof (error as any).response.data === "object" &&
+        (error as any).response.data !== null &&
+        "message" in (error as any).response.data
+      ) {
+        alertTimeoutHandler((error as any).response.data.message, "error");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -201,6 +215,7 @@ export default function SignIn() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     handleLogin();
+    setLocalStorage("chat", null);
   };
 
   if (isLoading) {
@@ -290,20 +305,22 @@ export default function SignIn() {
               </div>
             )}
             <div className="flex items-center justify-center gap-4 bg-white shadow-md rounded-md p-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="size-6 items-center"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
+              <Link href="/sign-up">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6 items-center"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                  />
+                </svg>
+              </Link>
             </div>
           </div>
         </div>

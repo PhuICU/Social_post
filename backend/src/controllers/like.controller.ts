@@ -5,6 +5,7 @@ import likeService from "~/services/like.service";
 import postService from "~/services/post.service";
 import { TokenPayload } from "~/type";
 import { responseError, responseSuccess } from "~/utils/response";
+import notificationController from "../controllers/notification.controller";
 
 const createLike = async (
   req: Request<ParamsDictionary, any, LIKE_REQUEST, any>,
@@ -34,6 +35,17 @@ const createLike = async (
       status: 404,
     });
   }
+
+  const notificationReq = {
+    body: {
+      userId: post?.poster_id?.toString(),
+      type: "like",
+      content: "Bài viết của bạn được ai đó thích 👍",
+      fromUser: user_id,
+    },
+  } as Request;
+
+  await notificationController.createNotification(notificationReq, res);
 
   await postService.update(post_id, { like: post.like + 1 });
 

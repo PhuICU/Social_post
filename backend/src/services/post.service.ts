@@ -55,6 +55,16 @@ class PostService {
       .find({ poster_id: new ObjectId(user_id) })
       .toArray();
   }
+
+  async getPostByImageId(image_id: string) {
+    return await databaseService.posts.findOne(
+      { images: { $elemMatch: { _id: image_id } } },
+      {
+        projection: { images: { $elemMatch: { _id: image_id } } },
+      }
+    );
+  }
+
   public async update(id: string, payload: POST_REQUEST) {
     return await databaseService.posts.findOneAndUpdate(
       { _id: new ObjectId(id) },

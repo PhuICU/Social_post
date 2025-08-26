@@ -6,6 +6,7 @@ import commentsService from "~/services/comment.service";
 import { TokenPayload } from "~/type";
 import { responseError, responseSuccess } from "~/utils/response";
 import postService from "~/services/post.service";
+import notificationController from "../controllers/notification.controller";
 const createComment = async (
   req: Request<ParamsDictionary, any, COMMENT_REQUEST, any>,
   res: Response
@@ -20,6 +21,18 @@ const createComment = async (
       data: null,
     });
   }
+
+  const notificationReq = {
+    body: {
+      userId: post?.poster_id?.toString(),
+      type: "comment",
+      content: "Bài viết của bạn có một bình luận mới",
+      fromUser: user_id,
+    },
+  } as Request;
+
+  await notificationController.createNotification(notificationReq, res);
+
   await postService.update(payload.post_id, { comment: post.comment + 1 });
   return responseSuccess(res, {
     message: "Tạo comment thành công",

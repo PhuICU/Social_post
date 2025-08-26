@@ -3,9 +3,12 @@ import { ObjectId } from "mongodb";
 import databaseService from "./database.service";
 
 class ImageService {
-  async create(payload: { public_id: string; url: string }) {
+  async create(payload: { public_id: string; url: string; poster_id: string }) {
     return await databaseService.images.insertOne(
-      new IMAGE_SCHEMA({ ...payload })
+      new IMAGE_SCHEMA({
+        ...payload,
+        poster_id: new ObjectId(payload.poster_id),
+      })
     );
   }
 
@@ -16,6 +19,13 @@ class ImageService {
     return await databaseService.images.findOneAndDelete({
       public_id: public_id,
     });
+  }
+  async getImageByIdUser(poster_id: string) {
+    return await databaseService.images
+      .find({
+        poster_id: new ObjectId(poster_id),
+      })
+      .toArray();
   }
 }
 

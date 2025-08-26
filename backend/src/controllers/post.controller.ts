@@ -39,6 +39,7 @@ const createPost = async (
       posted_by: user_id,
     };
     const createNewResult = await postService.createPost(payload, user_id);
+
     return responseSuccess(res, {
       message: "Tạo bài đăng thành công",
       data: createNewResult,
@@ -76,7 +77,7 @@ const updatePost = async (
 ) => {
   const { id } = req.params;
   const payload = req.body;
-  console.log("Payload: ", payload.posted_by);
+
   const result = await postService.update(id, payload);
   return responseSuccess(res, {
     message: "Cập nhật tin thành công",
@@ -122,6 +123,29 @@ const getPostByUserId = async (
     data: result,
   });
 };
+
+const getPostByImageId = async (
+  req: Request<ParamsDictionary, any, any, any>,
+  res: Response
+) => {
+  const { image_id } = req.params;
+  const find_post = await postService.getPostByImageId(image_id);
+  if (!find_post) {
+    return responseSuccess(res, {
+      message: "Không tìm thấy bài đăng với ảnh này",
+      data: null,
+    });
+  }
+  console.log("post", find_post);
+
+  const post = await postService.getPostById(find_post._id.toString());
+
+  return responseSuccess(res, {
+    message: "Lấy bài đăng theo ảnh thành công",
+    data: post,
+  });
+};
+
 const deleteAllPosts = async (
   req: Request<ParamsDictionary, any, any, any>,
   res: Response
@@ -178,5 +202,6 @@ const postsControllers = {
   getPostByUserId,
   updatePost,
   likePost,
+  getPostByImageId,
 };
 export default postsControllers;

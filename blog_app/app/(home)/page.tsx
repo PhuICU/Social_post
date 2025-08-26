@@ -2,15 +2,14 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import React, { useState, useEffect, Suspense, lazy } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { getAllPosts } from "../api/PostApi";
 
-const CardPost = lazy(() => import("@/component/card/card.post"));
+const CardPost = dynamic(() => import("@/component/card/card.post"));
 import { Post } from "@/component/card/card.post";
 
 export default function Home() {
-  const queryClient = useQueryClient();
-
   const {
     data: dataPosts,
     isLoading,
@@ -50,10 +49,10 @@ export default function Home() {
   if (error) return <div>Error loading posts</div>;
 
   return (
-    <div className="ml-33">
+    <div className="ml-33 mt-3">
       <div className="card w-[390px] px-10 flex md:justify-items-center md:w-[700px] sm:w-[550px] lg:w-[600px]">
         <div className="container mx-auto mb-7">
-          <div className="bg-white p-4 rounded-md shadow-md">
+          <div className="bg-white rounded-md shadow-md">
             <div>
               <div className="flex-shrink-0">
                 <div className="grid grid-cols-12  ">
@@ -275,12 +274,15 @@ export default function Home() {
       </div>
       <div className="w-[390px] px-10 flex md:justify-items-center md:w-[700px] sm:w-[550px] lg:w-[600px]">
         <div>
-          {posts?.map((post: Post) => (
-            <div key={post._id} className="mb-4">
-              {" "}
-              <CardPost data={post} />
-            </div>
-          ))}
+          {posts
+            ?.slice()
+            .reverse()
+            .map((post: Post) => (
+              <div key={post._id} className="mb-4">
+                {" "}
+                <CardPost data={post} />
+              </div>
+            ))}
         </div>
       </div>
       <div></div>

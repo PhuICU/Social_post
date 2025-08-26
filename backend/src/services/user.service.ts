@@ -330,6 +330,10 @@ class UserService {
   public async getAllUsers() {
     return databaseService.users.find({ role: ROLE_TYPE.USER }).toArray();
   }
+
+  async getUserBySlug(slug: string) {
+    return databaseService.users.findOne({ slug });
+  }
 }
 
 const userService = new UserService();

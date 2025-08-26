@@ -162,4 +162,10 @@ postRoutes.delete(
   wrapRequestHandler(postsControllers.deletePost)
 );
 
+postRoutes.get(
+  "/image/:image_id",
+
+  wrapRequestHandler(postsControllers.getPostByImageId)
+);
+
 export default postRoutes;

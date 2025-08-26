@@ -11,6 +11,8 @@ import { USER_SCHEMA } from "~/models/schemas/User.schema";
 import { FAVORITE_SCHEMA } from "~/models/schemas/Favorites.schema";
 import { LIKE_SCHEMA } from "~/models/schemas/Likes.schema";
 import { REPORT_SCHEMA } from "~/models/schemas/Reports.schema";
+import { FRIEND_SCHEMA } from "~/models/schemas/Friends.schema";
+import { NOTIFICATION_SCHEMA } from "~/models/schemas/Notification.schema";
 
 class DatabaseService {
   private client: MongoClient;
@@ -72,6 +74,14 @@ class DatabaseService {
   }
   get reports(): Collection<REPORT_SCHEMA> {
     return this.db.collection(env_config.DB_COLLECTIONS.REPORTS as string);
+  }
+  get friends(): Collection<FRIEND_SCHEMA> {
+    return this.db.collection(env_config.DB_COLLECTIONS.FRIENDS as string);
+  }
+  get notifications(): Collection<NOTIFICATION_SCHEMA> {
+    return this.db.collection(
+      env_config.DB_COLLECTIONS.NOTIFICATIONS as string
+    );
   }
 }
 

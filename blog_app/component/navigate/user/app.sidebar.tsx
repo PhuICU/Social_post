@@ -1,13 +1,16 @@
 "use client";
-import React, { useEffect, useRef, useState, lazy } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import useUserStore, { User } from "@/app/store/useUserStore";
-import { useShallow } from "zustand/shallow";
 
-import CreatePostModal from "@/component/modal/create-post.modal";
+const CreatePostModal = dynamic(
+  () => import("@/component/modal/modal.create-post")
+);
 import ThemeToggle from "@/component/ThemeToggle";
+import { setLocalStorage } from "@/app/hook/LocalStore";
 
 interface UserStore {
   user: User | null;
@@ -15,6 +18,7 @@ interface UserStore {
 }
 const AppSidebar = () => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
+  const [isOpenModal, setIsOpenModal] = useState(false);
   const dropdownRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
@@ -31,12 +35,7 @@ const AppSidebar = () => {
   }, []);
 
   const router = useRouter();
-  // const { user } = useUserStore<UserStore>(
-  //   useShallow((state) => ({
-  //     user: state.user,
-  //     setUser: state.setUser,
-  //   }))
-  // );
+
   const onLogout = () => {
     router.push("/sign-in");
     if (typeof window !== "undefined") {
@@ -45,11 +44,39 @@ const AppSidebar = () => {
     Cookies.remove("access_token");
     Cookies.remove("refresh_token");
     useUserStore.getState().setUser(null);
+    setLocalStorage("chat", null);
   };
 
   const user = useUserStore((state) => state.user);
 
   const userRouter = user?.full_name.replace(/\s+/g, "-").toLowerCase();
+  const modalRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        setIsOpenModal(false);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      setLocalStorage("isOpen", isOpenModal);
+    }
+
+    if (isOpenModal) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.body.classList.remove("modal-open");
+    };
+  }, [isOpenModal]);
 
   return (
     <div className="sidebar">
@@ -75,8 +102,9 @@ const AppSidebar = () => {
         </li>
         <li className="my-4 flex items-center">
           <Link
-            href={`/user/${userRouter}/saved`}
+            href={`/user/${user?.slug}/saved`}
             className="flex items-center"
+            prefetch
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -96,10 +124,12 @@ const AppSidebar = () => {
           </Link>
         </li>
         <li className="my-4 flex items-center">
-          <CreatePostModal />
-        </li>
-        <li className="my-4 ">
-          <Link href="/users" className="flex items-center">
+          <button
+            type="button"
+            className="flex items-center"
+            data-bs-toggle="modal"
+            onClick={() => setIsOpenModal(true)}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -111,11 +141,31 @@ const AppSidebar = () => {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"
+                d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z"
               />
             </svg>
 
-            <span className="mx-3.5 my-3 font-bold">Users</span>
+            <span className="mx-3.5 my-3 font-bold">Đăng bài</span>
+          </button>
+        </li>
+        <li className="my-4 ">
+          <Link href="/friend" className="flex items-center" prefetch>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+              className="size-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+              />
+            </svg>
+
+            <span className="mx-3.5 my-3 font-bold">Bạn bè</span>
           </Link>
         </li>
 
@@ -172,6 +222,21 @@ const AppSidebar = () => {
           )}
         </li>
       </ul>
+      {isOpenModal && (
+        <div
+          className="relative z-50"
+          aria-labelledby="modal-title"
+          role="dialog"
+          aria-modal="true"
+          ref={modalRef}
+        >
+          <div
+            className="fixed inset-0 bg-gray-500/75 transition-opacity"
+            aria-hidden="true"
+          ></div>
+          <CreatePostModal setIsOpenModal={setIsOpenModal} />
+        </div>
+      )}
     </div>
   );
 };

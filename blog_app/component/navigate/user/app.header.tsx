@@ -8,9 +8,12 @@ import { useTranslation } from "react-i18next";
 import React, { useRef, useEffect } from "react";
 import Cookies from "js-cookie";
 import useUserStore from "@/app/store/useUserStore";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import ThemeToggle from "@/component/ThemeToggle";
-
+import Notification from "@/component/Notification";
+import socket from "@/app/utils/socket";
+import { getUnreadCount, markAllAsRead } from "@/app/api/NotificationApi";
 interface SystemStore {
   lang: string;
   setLanguage: (lang: string) => void;
@@ -18,6 +21,8 @@ interface SystemStore {
 const AppHeader = () => {
   const [isLanguageOpen, setIsLanguageOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { t, i18n } = useTranslation();
   const { lang, setLanguage: setLanguageStore } = useSystem<SystemStore>(
@@ -39,8 +44,47 @@ const AppHeader = () => {
   };
 
   const user = useUserStore((state) => state.user);
-  const routerName = user?.full_name?.replace(/\s/g, "_");
-  console.log("routerName", routerName);
+  const queryClient = useQueryClient();
+  // 🚀 fetch count ban đầu
+  const userId = user?._id;
+  const { data } = useQuery({
+    queryKey: ["unreadCount", userId],
+    queryFn: () => {
+      if (!userId) throw new Error("User ID is undefined");
+      return getUnreadCount(userId);
+    },
+    enabled: !!userId,
+  });
+
+  const countNotification = data?.count ?? 0;
+
+  // Realtime: join room + listen
+  useEffect(() => {
+    if (!userId) return;
+    socket.emit("joinUser", userId);
+
+    socket.on("notification", () => {
+      queryClient.invalidateQueries({ queryKey: ["unreadCount", userId] });
+    });
+
+    socket.on("notification_read_all", ({ count }) => {
+      queryClient.setQueryData(["unreadCount", userId], { count });
+    });
+
+    return () => {
+      socket.off("notification");
+      socket.off("notification_read_all");
+    };
+  }, [userId, queryClient]);
+
+  const handleMarkAllAsRead = async () => {
+    if (!userId) return;
+    await markAllAsRead(userId);
+    queryClient.invalidateQueries({ queryKey: ["unreadCount", userId] });
+  };
+
+  const routerName = user?.slug;
+  console.log(data);
 
   const router = useRouter();
 
@@ -192,15 +236,46 @@ const AppHeader = () => {
                   <ThemeToggle />
                 </li>
                 <li className="md:px-4 px-2">
-                  <Image
-                    src="bell.svg"
-                    alt="Description of the image"
-                    width={21}
-                    height={21}
-                    className={
-                      "w-5 h-5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors text-amber-200"
-                    }
-                  />
+                  <button
+                    title="Notifications"
+                    onClick={() => {
+                      setIsNotificationOpen(!isNotificationOpen),
+                        handleMarkAllAsRead();
+                    }}
+                    className="relative"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="1.5"
+                      stroke="currentColor"
+                      className="size-6"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                      />
+                    </svg>
+                    <div
+                      className={`${
+                        countNotification > 0
+                          ? "absolute -top-1 -left-1  bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full shadow-md cursor-pointer"
+                          : "invisible"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Ngăn không cho bấm X bị trigger avatar
+                      }}
+                    >
+                      {countNotification > 0 ? countNotification : ""}
+                    </div>
+                  </button>
+                  {isNotificationOpen && (
+                    <div className="absolute bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 mt-2 right-0 border border-gray-200">
+                      <Notification />
+                    </div>
+                  )}
                 </li>
                 <li className="md:px-4 px-2">
                   <div>

@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import { ParamsDictionary } from "express-serve-static-core";
 import { v2 as cloudinary } from "cloudinary";
+import fs from "fs";
 import httpStatusCode from "~/constants/httpStatusCode";
 import imagesService from "~/services/image.service";
 import { ErrorWithMessage } from "~/utils/error";
 import { responseError, responseSuccess } from "~/utils/response";
 import env_config from "~/configs/env.config";
+import { log } from "console";
 
 cloudinary.config({
   cloud_name: env_config.CLOUDINARY.CLOUD_NAME,
@@ -36,21 +38,72 @@ const uploadCloudinarySingleImage = async (
   req: Request<ParamsDictionary, any, any, any>,
   res: Response
 ) => {
-  const sign_image = await cloudinary.uploader.upload(
-    req.file?.path as string,
-    {
-      folder: "photoguy-images",
+  if (!req.file) {
+    throw new ErrorWithMessage({
+      message: "No image file provided",
+      status: httpStatusCode.BAD_REQUEST,
+    });
+  }
+
+  try {
+    const sign_image = await cloudinary.uploader.upload(req.file.path, {
+      folder: "post-images",
+    });
+
+    const { user_id } = req.decoded_access_token as { user_id: string };
+
+    const result = await imagesService.create({
+      public_id: sign_image.public_id,
+      url: sign_image.secure_url,
+      poster_id: user_id, // Ensure poster_id is provided
+    });
+
+    const img = await imagesService.getbyId(result.insertedId.toString());
+
+    if (!img) {
+      throw new ErrorWithMessage({
+        message: "Failed to retrieve uploaded image",
+        status: httpStatusCode.INTERNAL_SERVER_ERROR,
+      });
     }
-  );
-  const result = await imagesService.create({
-    public_id: sign_image.public_id,
-    url: sign_image.secure_url,
-  });
-  const img = await imagesService.getbyId(result.insertedId.toString());
-  return responseSuccess(res, {
-    message: "Image uploaded successfully",
-    data: img,
-  });
+
+    // Clean up temporary file
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (error) {
+      console.error("Error deleting temporary file:", error);
+    }
+
+    return responseSuccess(res, {
+      message: "Image uploaded successfully",
+      data: {
+        url: img.url,
+        public_id: img.public_id,
+        _id: img._id,
+        poster_id: img.poster_id,
+      },
+    });
+  } catch (error: any) {
+    // Clean up temporary file on error
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (cleanupError) {
+      console.error("Error deleting temporary file:", cleanupError);
+    }
+
+    if (error.message?.includes("Must supply api_key")) {
+      throw new ErrorWithMessage({
+        message:
+          "Cloudinary configuration is missing. Please check your environment variables: CLOUD_NAME, API_KEY, API_SECRET",
+        status: httpStatusCode.INTERNAL_SERVER_ERROR,
+      });
+    }
+
+    throw new ErrorWithMessage({
+      message: `Image upload failed: ${error.message || "Unknown error"}`,
+      status: httpStatusCode.INTERNAL_SERVER_ERROR,
+    });
+  }
 };
 const uploadCloudinaryMultipleImages = async (
   req: Request<ParamsDictionary, any, any, any>,
@@ -64,24 +117,63 @@ const uploadCloudinaryMultipleImages = async (
       status: httpStatusCode.BAD_REQUEST,
     });
   }
+  const { user_id } = req.decoded_access_token as { user_id: string };
 
-  const uploadPromises = files.map(async (file) => {
-    const sign_image = await cloudinary.uploader.upload(file.path, {
-      folder: "photoguy-images",
+  // Check if any files are missing
+  const missingFiles = files.filter((file) => !file.path);
+  if (missingFiles.length > 0) {
+    throw new ErrorWithMessage({
+      message: "Some image files are corrupted or missing",
+      status: httpStatusCode.BAD_REQUEST,
     });
-    return imagesService.create({
-      public_id: sign_image.public_id,
-      url: sign_image.secure_url,
+  }
+
+  try {
+    const uploadPromises = files.map(async (file) => {
+      const sign_image = await cloudinary.uploader.upload(file.path, {
+        folder: "post-images",
+      });
+      return imagesService.create({
+        public_id: sign_image.public_id,
+        url: sign_image.secure_url,
+        poster_id: user_id, // Ensure poster_id is provided
+      });
     });
-  });
-  const results = await Promise.all(uploadPromises);
-  const images = results.map(async (result) => {
-    return await imagesService.getbyId(result.insertedId.toString());
-  });
-  return responseSuccess(res, {
-    message: "Images uploaded successfully",
-    data: await Promise.all(images),
-  });
+    const results = await Promise.all(uploadPromises);
+    const images = await Promise.all(
+      results.map(async (result) => {
+        return await imagesService.getbyId(result.insertedId.toString());
+      })
+    );
+
+    // Clean up temporary files
+    files.forEach((file) => {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (error) {
+        console.error("Error deleting temporary file:", error);
+      }
+    });
+
+    return responseSuccess(res, {
+      message: "Images uploaded successfully",
+      data: images,
+    });
+  } catch (error: any) {
+    // Clean up temporary files on error
+    files.forEach((file) => {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (cleanupError) {
+        console.error("Error deleting temporary file:", cleanupError);
+      }
+    });
+
+    throw new ErrorWithMessage({
+      message: `Images upload failed: ${error.message || "Unknown error"}`,
+      status: httpStatusCode.INTERNAL_SERVER_ERROR,
+    });
+  }
 };
 // const getImageById = async (req: Request<ParamsDictionary, any, any, any>, res: Response) => {
 //   const { id } = req.params
@@ -189,10 +281,30 @@ const destroyImages = async (
   }
 };
 
+const getImageByIdUser = async (
+  req: Request<ParamsDictionary, any, any, any>,
+  res: Response
+) => {
+  const { id } = req.params;
+
+  const image = await imagesService.getImageByIdUser(id);
+  if (!image) {
+    throw new ErrorWithMessage({
+      message: "Image not found",
+      status: httpStatusCode.NOT_FOUND,
+    });
+  }
+  return responseSuccess(res, {
+    message: "Image found",
+    data: image,
+  });
+};
+
 const uploadImageControllers = {
   getCloudinaryImageById,
   uploadCloudinarySingleImage,
   uploadCloudinaryMultipleImages,
   destroyImages,
+  getImageByIdUser,
 };
 export default uploadImageControllers;

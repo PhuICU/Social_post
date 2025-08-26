@@ -10,6 +10,16 @@ const instance = axios.create({
   withCredentials: true,
 });
 
+// Create a separate instance for file uploads with longer timeout
+const uploadInstance = axios.create({
+  baseURL: "http://localhost:3001",
+  timeout: 60000, // 60 seconds for file uploads
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+  withCredentials: true,
+});
+
 instance.interceptors.request.use(
   async (config) => {
     const accessToken = Cookies.get("access_token");
@@ -41,14 +51,14 @@ instance.interceptors.response.use(
 
   async (error) => {
     const originalRequest = error.config;
-    console.error("Response error:", error.response);
+    console.error("Response error:", error);
 
-    if (error?.response?.data?.errors?.authorization) {
+    if (error.response?.data.errors?.authorization) {
       Cookies.remove("access_token");
       Cookies.remove("refresh_token");
       window.location.href = "/sign-in";
     }
-    if (error?.response?.status === 401 && !originalRequest._retry) {
+    if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refresh_token = Cookies.get("refresh_token");
@@ -85,4 +95,72 @@ instance.interceptors.response.use(
   }
 );
 
+// Add interceptors to uploadInstance
+uploadInstance.interceptors.request.use(
+  async (config) => {
+    const accessToken = Cookies.get("access_token");
+
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    return config;
+  },
+  (err) => {
+    console.error("Upload request error:", err);
+    return Promise.reject(err);
+  }
+);
+
+uploadInstance.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+    console.error("Upload response error:", error.response);
+
+    if (error.response?.data?.errors?.authorization) {
+      Cookies.remove("access_token");
+      Cookies.remove("refresh_token");
+      window.location.href = "/sign-in";
+    }
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refresh_token = Cookies.get("refresh_token");
+      console.log("Refresh token:", refresh_token);
+      if (!refresh_token) {
+        return Promise.reject(error);
+      }
+      try {
+        const response = await instance.post("/user/refresh-access-token", {
+          refresh_token,
+        });
+        console.log("response", response.data);
+        if (response.status === 200) {
+          const newAccessToken = response.data.data.access_token;
+          const newRefreshToken = response.data.data.refresh_token;
+
+          // Update the local storage with new tokens
+          Cookies.set("access_token", newAccessToken, { expires: 1 });
+          Cookies.set("refresh_token", newRefreshToken, { expires: 7 });
+
+          // Update the authorization header in the original request with the new access token
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          return uploadInstance(originalRequest);
+        }
+      } catch (error) {
+        Cookies.remove("access_token");
+        Cookies.remove("refresh_token");
+        return Promise.reject(error);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default instance;
+export { uploadInstance };

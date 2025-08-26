@@ -28,7 +28,7 @@ const getChats = async (
   res: Response
 ) => {
   const { firstId, secondId } = req.params;
-  const result = await chatService.getChats({ member: [firstId, secondId] });
+  const result = await chatService.getChat({ members: [firstId, secondId] });
   return responseSuccess(res, {
     message: "Lấy danh sách chat thành công",
     data: result,
@@ -40,8 +40,8 @@ const getChatsOfUser = async (
   res: Response
 ) => {
   const { userId } = req.params;
-  const result = await chatService.getUsersChat(userId);
-  console.log(result);
+  const result = await chatService.getUserChats(userId);
+
   return responseSuccess(res, {
     message: "Lấy danh sách chat theo user thành công",
     data: result,

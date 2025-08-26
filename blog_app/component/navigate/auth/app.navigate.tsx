@@ -42,10 +42,14 @@ const AppNavigate = () => {
           <div className="menu py-1.5 my-3">
             <ul className="flex gap-4">
               <li className="">
-                <Link href="/sign-in">Đăng nhập</Link>
+                <Link href="/sign-in" prefetch>
+                  Đăng nhập
+                </Link>
               </li>
               <li>
-                <Link href="/sign-up">Đăng ký</Link>
+                <Link href="/sign-up" prefetch>
+                  Đăng ký
+                </Link>
               </li>
               <li>Trung tâm hỗ trợ</li>
               <li>Dịch vụ</li>

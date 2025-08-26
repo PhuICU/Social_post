@@ -20,7 +20,7 @@ const creatReport = async (
     report_posts_id
   )) as POSTS_SCHEMA;
   const reporter_id = (req.decoded_access_token as TokenPayload).user_id;
-  console.log(payload);
+
   const result = await reportsInteractionService.createReport({
     ...payload,
     reporter_id: reporter_id,
